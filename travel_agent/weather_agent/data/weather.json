@@ -1,0 +1,42 @@
+[
+  {
+    "location": "Paris",
+    "forecast": [
+      {
+        "date": "2026-12-02",
+        "condition": "Sunny",
+        "high": 12,
+        "low": 6,
+        "rain_probability": 10
+      },
+      {
+        "date": "2026-12-03",
+        "condition": "Cloudy",
+        "high": 11,
+        "low": 5,
+        "rain_probability": 20
+      },
+      {
+        "date": "2026-12-04",
+        "condition": "Rainy",
+        "high": 9,
+        "low": 5,
+        "rain_probability": 80
+      },
+      {
+        "date": "2026-12-05",
+        "condition": "Cloudy",
+        "high": 10,
+        "low": 4,
+        "rain_probability": 30
+      },
+      {
+        "date": "2026-12-06",
+        "condition": "Sunny",
+        "high": 13,
+        "low": 6,
+        "rain_probability": 10
+      }
+    ]
+  }
+]

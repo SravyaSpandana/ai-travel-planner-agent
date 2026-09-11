@@ -1,0 +1,38 @@
+[
+  {
+    "city": "Paris",
+    "name": "Hotel Lumiere",
+    "rating": 4.5,
+    "price_per_night": 120
+  },
+  {
+    "city": "Paris",
+    "name": "Eiffel Stay",
+    "rating": 4.0,
+    "price_per_night": 95
+  },
+  {
+    "city": "Paris",
+    "name": "Parisian Comfort",
+    "rating": 4.2,
+    "price_per_night": 110
+  },
+  {
+    "city": "London",
+    "name": "London Central Hotel",
+    "rating": 4.3,
+    "price_per_night": 130
+  },
+  {
+    "city": "London",
+    "name": "Royal Stay",
+    "rating": 4.7,
+    "price_per_night": 160
+  },
+  {
+    "city": "Hyderabad",
+    "name": "Hyderabad Grand",
+    "rating": 4.4,
+    "price_per_night": 80
+  }
+]

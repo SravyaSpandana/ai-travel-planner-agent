@@ -1,0 +1,42 @@
+[
+  {
+    "location": "Paris",
+    "name": "Eiffel Tower",
+    "category": "Landmark",
+    "duration_hours": 2,
+    "price": 25,
+    "indoor": false
+  },
+  {
+    "location": "Paris",
+    "name": "Louvre Museum",
+    "category": "Museum",
+    "duration_hours": 3,
+    "price": 20,
+    "indoor": true
+  },
+  {
+    "location": "Paris",
+    "name": "Seine River Cruise",
+    "category": "Sightseeing",
+    "duration_hours": 2,
+    "price": 18,
+    "indoor": false
+  },
+  {
+    "location": "Paris",
+    "name": "Montmartre",
+    "category": "Sightseeing",
+    "duration_hours": 3,
+    "price": 0,
+    "indoor": false
+  },
+  {
+    "location": "Paris",
+    "name": "Palace of Versailles",
+    "category": "Historical",
+    "duration_hours": 5,
+    "price": 30,
+    "indoor": false
+  }
+]
