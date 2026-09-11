@@ -58,11 +58,18 @@ The Travel Planner Agent communicates with the Weather Agent through its A2A end
 ## Project Structure
 
 ```text
-ai-travel-planner-agent/
+AITravelPlanner/
 │
 ├── travel_agent/
 │   ├── __init__.py
 │   ├── agent.py
+│   ├── models.py
+│   │
+│   ├── attractions_agent/
+│   │   ├── __init__.py
+│   │   ├── agent.py
+│   │   ├── data/
+│   │   └── __pycache__/
 │   │
 │   ├── flight_agent/
 │   │   ├── __init__.py
@@ -72,26 +79,18 @@ ai-travel-planner-agent/
 │   │   ├── __init__.py
 │   │   └── agent.py
 │   │
-│   ├── attractions_agent/
-│   │   ├── __init__.py
-│   │   └── agent.py
-│   │
 │   └── weather_agent/
 │       ├── __init__.py
 │       └── agent.py
 │
-├── data/
-│   ├── flights.json
-│   ├── hotels.json
-│   ├── attractions.json
-│   └── weather.json
-│
+├── test_a2a.py
+├── .env.example
 ├── .gitignore
-├── requirements.txt
-└── README.md
+├── README.md
+└── requirements.txt
 ```
 
-> The folder structure may vary slightly depending on the local project configuration.
+> The `.venv/`, `__pycache__/`, and `.adk/` directories are local environment or generated files and should not be committed to GitHub.
 
 ## Prerequisites
 
@@ -100,7 +99,7 @@ Before running the application, make sure the following are installed:
 - Python 3.10 or later
 - Git
 - Google ADK
-- A code editor such as Visual Studio Code
+- Visual Studio Code or another code editor
 - Access to the required Google/Gemini API configuration
 
 ## Installation
@@ -108,7 +107,7 @@ Before running the application, make sure the following are installed:
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/ai-travel-planner-agent.git
+git clone https://github.com/SravyaSpandana/ai-travel-planner-agent.git
 ```
 
 Move into the project directory:
@@ -127,7 +126,7 @@ python -m venv .venv
 
 For Windows:
 
-```bash
+```powershell
 .venv\Scripts\activate
 ```
 
@@ -151,9 +150,11 @@ pip install "google-adk[a2a]"
 
 ## Configuration
 
-Configure the required API key or environment variables before starting the application.
+The application requires the appropriate Google/Gemini API configuration.
 
-Create a `.env` file in the project root if your project requires one:
+Create a `.env` file in the project root based on `.env.example`.
+
+Example:
 
 ```env
 GOOGLE_API_KEY=your_api_key_here
@@ -161,7 +162,7 @@ GOOGLE_API_KEY=your_api_key_here
 
 Do not commit the `.env` file or any API keys to GitHub.
 
-The `.env` file is excluded through `.gitignore`.
+The `.env` file should be excluded through `.gitignore`.
 
 ## Running the Application
 
@@ -169,17 +170,15 @@ The Weather Agent runs as a separate remote A2A service. The Travel Planner Agen
 
 ### 1. Activate the virtual environment
 
-Open a terminal in the project directory and activate the environment.
-
 For Windows:
 
-```bash
+```powershell
 .venv\Scripts\activate
 ```
 
 ### 2. Start the Weather A2A Agent
 
-Run the following command:
+Run the following command from the project root:
 
 ```bash
 uvicorn travel_agent.weather_agent.agent:a2a_app --host localhost --port 8001
@@ -195,23 +194,31 @@ Keep this terminal running.
 
 ### 3. Start the Travel Planner Agent
 
-Open a second terminal.
+Open a second terminal and activate the virtual environment:
 
-Activate the virtual environment again:
-
-```bash
+```powershell
 .venv\Scripts\activate
 ```
 
 Start the Travel Planner Agent using the configured Google ADK development command or entry point.
 
-For example, if the project is configured for the ADK development interface, run the appropriate ADK command from the project root.
+The Travel Planner Agent communicates with the Weather Agent running on port `8001`.
 
-The Travel Planner Agent will communicate with the Weather Agent running on port `8001`.
+## Testing A2A Communication
+
+The project includes `test_a2a.py` for testing the A2A communication.
+
+Make sure the Weather Agent is running before executing the test.
+
+Run:
+
+```bash
+python test_a2a.py
+```
 
 ## Example Workflow
 
-A typical travel planning request may follow this flow:
+A typical travel planning request follows this flow:
 
 ```text
 User
@@ -228,7 +235,7 @@ Travel Planner Agent
   └──> Remote Weather Agent
              |
              v
-          A2A Protocol
+         A2A Protocol
 ```
 
 The Travel Planner Agent collects the responses from the specialized agents and generates a consolidated travel plan.
@@ -256,17 +263,15 @@ The agents include graceful handling for scenarios such as:
 - Invalid or incomplete input
 - Missing local data files
 - Service communication failures
+- A2A service communication errors
 
 The agents return structured responses indicating whether the request was successful or unavailable.
 
 ## Data Sources
 
-The current version uses local JSON files for demonstration purposes:
+The current version uses local JSON data for demonstration purposes.
 
-- `flights.json`
-- `hotels.json`
-- `attractions.json`
-- `weather.json`
+The data files are maintained within the relevant agent directory, including the attractions agent's data directory.
 
 These local data sources can later be replaced with real-time external APIs or MCP-based tools.
 
@@ -281,6 +286,7 @@ The current version includes:
 - Remote Weather Agent
 - A2A-based communication with the Weather Agent
 - Complete travel itinerary generation
+- A2A communication testing using `test_a2a.py`
 
 ## Future Enhancements
 
@@ -302,7 +308,7 @@ Planned improvements include:
 
 ## Development Notes
 
-Run the following command to check the current Git status:
+Check the current Git status:
 
 ```bash
 git status

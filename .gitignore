@@ -1,29 +1,17 @@
-# Python
-__pycache__/
-*.py[cod]
-*.pyo
-
-# Virtual environment
 .venv/
 venv/
 env/
 
-# Environment variables and secrets
+__pycache__/
+*.py[cod]
+
+.adk/
+
 .env
 .env.*
 
-# IDE
 .vscode/
 .idea/
 
-# OS files
-.DS_Store
-Thumbs.db
-
-# Test and cache files
 .pytest_cache/
-.coverage
-htmlcov/
-
-# Logs
 *.log
