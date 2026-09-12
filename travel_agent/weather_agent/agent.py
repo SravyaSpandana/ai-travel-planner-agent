@@ -1,4 +1,5 @@
 import json
+import logging
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -15,6 +16,10 @@ from travel_agent.models import WeatherForecast
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 load_dotenv(PROJECT_ROOT / ".env")
 
+# --------------------------------------------------
+# Logger
+# --------------------------------------------------
+logger = logging.getLogger(__name__)
 
 # --------------------------------------------------
 # Weather Tool
@@ -27,8 +32,7 @@ def get_weather(location: str) -> str:
     Returns a JSON string containing the weather forecast
     or an unavailable response.
     """
-
-    print(f"Weather tool started for: {location}")
+    logger.info("Weather tool started for: %s", location)
 
     file_path = Path(__file__).parent / "data" / "weather.json"
 
@@ -68,7 +72,7 @@ def get_weather(location: str) -> str:
 
     except Exception as e:
 
-        print(f"Weather service failed: {e}")
+        logger.exception("Weather service failed")
 
         return json.dumps(
             {

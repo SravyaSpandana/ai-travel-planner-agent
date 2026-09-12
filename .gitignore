@@ -1,17 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Virtual environment
 .venv/
 venv/
 env/
 
-__pycache__/
-*.py[cod]
-
-.adk/
-
+# Environment variables and secrets
 .env
 .env.*
+!.env.example
 
+# ADK local files
+.adk/
+
+# IDE
 .vscode/
 .idea/
 
-.pytest_cache/
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
 *.log
+
+# Test/cache files
+.pytest_cache/
+.mypy_cache/
