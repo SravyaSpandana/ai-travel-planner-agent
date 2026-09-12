@@ -1,11 +1,45 @@
+import sys
+from pathlib import Path
+
 from google.adk.agents import Agent
-from google.adk.agents.remote_a2a_agent import RemoteA2aAgent
+from google.adk.tools.mcp_tool.mcp_toolset import (
+    McpToolset,
+    StdioConnectionParams,
+    StdioServerParameters,
+)
+#from google.adk.agents.remote_a2a_agent import RemoteA2aAgent
 from google.adk.tools.agent_tool import AgentTool
 
 from .flight_agent.agent import root_agent as flight_agent
 from .hotel_agent.agent import root_agent as hotel_agent
 from .attractions_agent.agent import root_agent as attractions_agent
 
+# --------------------------------------------------
+# Project Root
+# --------------------------------------------------
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+
+
+# --------------------------------------------------
+# Weather MCP Toolset
+# --------------------------------------------------
+# The Weather MCP Server runs as a separate process.
+# ADK communicates with it through stdio.
+
+weather_mcp_toolset = McpToolset(
+    connection_params=StdioConnectionParams(
+        server_params=StdioServerParameters(
+            command=sys.executable,
+            args=[
+                "-m",
+                "mcp_servers.weather_mcp_server",
+            ],
+            cwd=str(PROJECT_ROOT),
+        ),
+        timeout=10,
+    ),
+)
 
 # --------------------------------------------------
 # Remote Weather Agent
@@ -13,191 +47,87 @@ from .attractions_agent.agent import root_agent as attractions_agent
 # The Weather Agent runs as a separate A2A service.
 # Start it independently on port 8001.
 
-weather_agent = RemoteA2aAgent(
-    name="weather_agent",
-    description=(
-        "Provides weather forecasts for a destination. "
-        "Use this agent to retrieve weather information "
-        "for a travel location and date range."
-    ),
-    agent_card=(
-        "http://localhost:8001/"
-        ".well-known/agent-card.json"
-    ),
-    mode="task",
-)
-
+# weather_agent = RemoteA2aAgent(
+#     name="weather_agent",
+#     description=(
+#         "Provides weather forecasts for a destination. "
+#         "Use this agent to retrieve weather information "
+#         "for a travel location and date range."
+#     ),
+#     agent_card=(
+#         "http://localhost:8001/"
+#         ".well-known/agent-card.json"
+#     ),
+#     mode="task",
+# )
 
 # --------------------------------------------------
 # Main Travel Planning Agent
 # --------------------------------------------------
+TRAVEL_AGENT_INSTRUCTION = """
+You are travel_agent, the main travel-planning orchestrator and
+the only agent responsible for the final user response.
+
+Your job is to collect information from specialized sources and
+produce one consolidated answer.
+
+Available sources:
+
+1. Flight Agent
+2. Hotel Agent
+3. Attractions Agent
+4. Weather MCP tool
+
+Execution rules:
+
+- Determine which sources are needed from the user's request.
+- Call only the required sources.
+- Call each source at most once per user request.
+- Never retry a source after it returns a result or fails.
+- Treat a successful result as final for the current request.
+- If information is missing, mark it as unavailable.
+- Never invent missing flights, hotels, attractions, prices, or weather.
+- Do not transfer control to another agent.
+- Do not return intermediate tool results.
+- Do not restart the workflow.
+
+Examples:
+
+- For a weather-only question, call only the Weather MCP tool.
+- For a complete trip-planning request, call the flight, hotel,
+  attractions, and weather sources as required.
+- If the user does not ask for weather, do not call the Weather MCP tool.
+
+After the required sources have returned or failed:
+
+1. Review the collected results.
+2. Create one final consolidated response.
+3. Stop using tools.
+
+The final response should contain the relevant sections:
+
+- Trip Summary
+- Flight Information
+- Hotel Information
+- Weather Summary, if requested
+- Day-by-Day Itinerary, if itinerary planning was requested
+- Estimated Cost, only when enough prices are available
+- Important Notes
+
+For a weather-only request, answer directly with the weather result.
+Do not call flight, hotel, or attractions agents.
+"""
 
 root_agent = Agent(
     model="gemini-3.5-flash-lite",
     name="travel_agent",
     description="A travel planning orchestrator.",
-
-    instruction="""
-You are the MAIN Travel Planning Agent.
-
-Your responsibility is to coordinate specialized agents
-and produce ONE complete, consolidated travel plan.
-
-You are NOT a weather agent, flight agent, hotel agent,
-or attractions agent. You are the orchestrator.
-
---------------------------------------------------
-AVAILABLE SPECIALIZED AGENTS
---------------------------------------------------
-
-1. Flight Agent
-   - Searches available flights.
-   - Use it when flight information is required.
-
-2. Hotel Agent
-   - Searches available hotels.
-   - Use it when accommodation information is required.
-
-3. Attractions Agent
-   - Searches tourist attractions and activities.
-   - Use it when attractions or activities are required.
-
-4. Weather Agent
-   - A REMOTE agent connected through the A2A protocol.
-   - Use it when weather information is required.
-   - The weather result is intermediate trip information,
-     NOT the final response to the user.
-
---------------------------------------------------
-TRIP PLANNING WORKFLOW
---------------------------------------------------
-
-For a complete trip-planning request:
-
-1. Identify:
-   - Origin
-   - Destination
-   - Start date
-   - End date
-   - Number of travelers
-
-2. Delegate to the appropriate specialized agents.
-
-3. Collect the available results from:
-   - Flight Agent
-   - Hotel Agent
-   - Attractions Agent
-   - Weather Agent
-
-4. Review and combine the returned information.
-
-5. Create ONE complete travel plan.
-
-6. Create a day-by-day itinerary whenever possible.
-
---------------------------------------------------
-IMPORTANT ORCHESTRATION RULES
---------------------------------------------------
-
-- You are the MAIN agent.
-- Specialized agents provide information.
-- Do not return a specialized agent's response directly
-  as the final answer.
-- Do not stop planning after receiving the weather result.
-- Do not return only a weather forecast.
-- Do not return only flight results.
-- Do not return only hotel results.
-- Do not return only attractions results.
-
-After receiving a specialized agent's response:
-
-1. Treat it as collected information.
-2. Check which required information is still missing.
-3. Delegate to the remaining appropriate agents.
-4. After collecting the available information,
-   synthesize the final travel plan yourself.
-
-The final response must be generated by travel_agent.
-
---------------------------------------------------
-WEATHER AGENT RULES
---------------------------------------------------
-
-The Weather Agent is remote and communicates through A2A.
-
-When weather is needed:
-- Call the weather_agent.
-- Use its returned result as weather information.
-- Continue the overall trip-planning workflow.
-- Do not transfer the entire conversation to the
-  Weather Agent.
-- Do not end the response with only the weather result.
-
-Weather is optional.
-
-If weather is available:
-- Include the weather summary.
-- Use it for weather-aware itinerary decisions.
-
-If weather is unavailable:
-- Continue planning.
-- Clearly mention that weather information was unavailable.
-- Do not invent weather information.
-- Do not make weather-based itinerary decisions.
-
---------------------------------------------------
-ITINERARY RULES
---------------------------------------------------
-
-When creating the final itinerary:
-
-- Respect the user's travel dates.
-- Use the flight information returned by Flight Agent.
-- Use the hotel information returned by Hotel Agent.
-- Use the attractions returned by Attractions Agent.
-- Use the weather information returned by Weather Agent.
-- Consider arrival and departure times.
-- Avoid scheduling too many activities in one day.
-- Prefer indoor attractions on rainy days when weather
-  data is available.
-- Do not invent flight, hotel, weather, or attraction
-  information.
-
---------------------------------------------------
-FINAL RESPONSE FORMAT
---------------------------------------------------
-
-Always provide ONE consolidated travel plan.
-
-Include:
-
-1. Trip Summary
-2. Flight Information
-3. Hotel Information
-4. Weather Summary
-5. Day-by-Day Itinerary
-6. Important Notes
-
-If any information is unavailable, clearly mention it.
-
-Do not end the interaction with only a specialized
-agent's response.
-
-Your final answer must be a complete travel plan,
-not a raw tool result.
-""",
-
-    # Local agents remain sub-agents.
-    sub_agents=[
-        flight_agent,
-        hotel_agent,
-        attractions_agent,
-    ],
-
-    # Remote Weather Agent is exposed as a tool.
-    # This allows its A2A result to return to the
-    # Travel Agent for final synthesis.
+    instruction=TRAVEL_AGENT_INSTRUCTION,
     tools=[
-        AgentTool(agent=weather_agent),
+        AgentTool(agent=flight_agent),
+        AgentTool(agent=hotel_agent),
+        AgentTool(agent=attractions_agent),
+        weather_mcp_toolset,
     ],
 )
+
