@@ -1,6 +1,6 @@
 # AI Travel Planner Agent
 
-An agentic AI travel planning application built using **Google Agent Development Kit (ADK)** and the **A2A protocol**.
+An agentic AI travel planning application built using **Google Agent Development Kit (ADK)**, the **A2A protocol**, and the **Model Context Protocol (MCP)**.
 
 The application uses multiple specialized agents to help users plan a trip by retrieving flight information, hotel details, attractions, and weather information.
 
@@ -11,7 +11,9 @@ The application uses multiple specialized agents to help users plan a trip by re
 - Hotel search using local JSON data
 - Attractions search using local JSON data
 - Weather information through a remote A2A agent
+- Weather functionality exposed through a local MCP server
 - Communication between agents using the A2A protocol
+- Tool integration using the Model Context Protocol
 - Agent orchestration using Google ADK
 - Structured responses using Pydantic models
 - Graceful error handling for missing or unavailable data
@@ -22,6 +24,8 @@ The application uses multiple specialized agents to help users plan a trip by re
 - Python
 - Google Agent Development Kit
 - A2A Protocol
+- Model Context Protocol
+- FastMCP
 - Pydantic
 - Uvicorn
 - JSON
@@ -51,9 +55,50 @@ Retrieves attractions and sightseeing information from a local JSON data source.
 
 ### 5. Weather Agent
 
-The Weather Agent is exposed as a remote agent using the **A2A protocol**.
+The Weather Agent was initially exposed as a remote agent using the **A2A protocol**.
 
-The Travel Planner Agent communicates with the Weather Agent through its A2A endpoint.
+The project now also includes a local **Weather MCP Server**, which exposes weather functionality as an MCP tool that can be consumed by the Travel Planner Agent through an MCP toolset.
+
+## MCP Integration
+
+The project integrates the **Model Context Protocol (MCP)** to expose weather functionality as a reusable tool.
+
+The Weather MCP Server is implemented using **FastMCP** and provides a weather tool such as:
+
+```python
+get_weather(location: str)
+```
+
+The Travel Planner Agent connects to the local MCP server using the ADK `McpToolset`.
+
+The MCP server communicates with the Travel Planner Agent through **stdio communication**.
+
+### MCP Communication Flow
+
+```text
+Travel Planner Agent
+        |
+        v
+McpToolset
+        |
+        | stdio communication
+        v
+Weather MCP Server
+        |
+        v
+Weather Service
+        |
+        v
+Local Weather Data
+```
+
+The MCP server is launched as a Python module:
+
+```bash
+python -m mcp_servers.weather_mcp_server
+```
+
+The ADK application starts and communicates with the MCP server when the weather tool is required.
 
 ## Project Structure
 
@@ -82,6 +127,11 @@ AITravelPlanner/
 │   └── weather_agent/
 │       ├── __init__.py
 │       └── agent.py
+│
+├── mcp_servers/
+│   ├── __init__.py
+│   ├── weather_mcp_server.py
+│   └── test_weather_mcp.py
 │
 ├── test_a2a.py
 ├── .env.example
@@ -148,6 +198,12 @@ If the A2A dependency is not already included in `requirements.txt`, install it 
 pip install "google-adk[a2a]"
 ```
 
+The MCP dependency is included in the project requirements. If required, it can be installed using:
+
+```bash
+pip install mcp
+```
+
 ## Configuration
 
 The application requires the appropriate Google/Gemini API configuration.
@@ -166,7 +222,7 @@ The `.env` file should be excluded through `.gitignore`.
 
 ## Running the Application
 
-The Weather Agent runs as a separate remote A2A service. The Travel Planner Agent communicates with it through the configured A2A endpoint.
+The Weather Agent was previously run as a separate remote A2A service. The current implementation also supports weather functionality through the local MCP server.
 
 ### 1. Activate the virtual environment
 
@@ -178,7 +234,7 @@ For Windows:
 
 ### 2. Start the Weather A2A Agent
 
-Run the following command from the project root:
+If you want to run and test the A2A-based Weather Agent, run the following command from the project root:
 
 ```bash
 uvicorn travel_agent.weather_agent.agent:a2a_app --host localhost --port 8001
@@ -202,7 +258,33 @@ Open a second terminal and activate the virtual environment:
 
 Start the Travel Planner Agent using the configured Google ADK development command or entry point.
 
-The Travel Planner Agent communicates with the Weather Agent running on port `8001`.
+The Travel Planner Agent can communicate with the Weather Agent through A2A or use the local Weather MCP Server through the configured MCP toolset, depending on the current implementation.
+
+## Running the MCP Server
+
+The Weather MCP Server is normally started automatically by the Travel Planner Agent through `McpToolset`.
+
+To start the MCP server independently, run the following command from the project root.
+
+For Windows:
+
+```powershell
+.venv\Scripts\python.exe -m mcp_servers.weather_mcp_server
+```
+
+For macOS/Linux:
+
+```bash
+.venv/bin/python -m mcp_servers.weather_mcp_server
+```
+
+The MCP server uses stdio communication, so it may appear to wait without displaying a normal web page or HTTP response.
+
+Stop the server using:
+
+```text
+Ctrl + C
+```
 
 ## Testing A2A Communication
 
@@ -214,6 +296,22 @@ Run:
 
 ```bash
 python test_a2a.py
+```
+
+## Testing MCP Integration
+
+The project includes `mcp_servers/test_weather_mcp.py` for testing the Weather MCP functionality.
+
+Run:
+
+```bash
+python -m mcp_servers.test_weather_mcp
+```
+
+You can also verify that the MCP server module can be imported successfully:
+
+```powershell
+.venv\Scripts\python.exe -c "import mcp_servers.weather_mcp_server; print('MCP module loaded successfully')"
 ```
 
 ## Example Workflow
@@ -232,10 +330,13 @@ Travel Planner Agent
   |
   ├──> Attractions Agent
   |
-  └──> Remote Weather Agent
+  └──> Weather MCP Toolset
              |
              v
-         A2A Protocol
+       Weather MCP Server
+             |
+             v
+        Weather Service
 ```
 
 The Travel Planner Agent collects the responses from the specialized agents and generates a consolidated travel plan.
@@ -249,7 +350,7 @@ Plan a trip to Singapore for 5 days.
 Include flight options, hotels, attractions, and weather information.
 ```
 
-The Travel Planner Agent processes the request and retrieves information from the relevant specialized agents.
+The Travel Planner Agent processes the request and retrieves information from the relevant specialized agents and weather MCP tool.
 
 ## Error Handling
 
@@ -264,6 +365,7 @@ The agents include graceful handling for scenarios such as:
 - Missing local data files
 - Service communication failures
 - A2A service communication errors
+- MCP server communication errors
 
 The agents return structured responses indicating whether the request was successful or unavailable.
 
@@ -273,7 +375,9 @@ The current version uses local JSON data for demonstration purposes.
 
 The data files are maintained within the relevant agent directory, including the attractions agent's data directory.
 
-These local data sources can later be replaced with real-time external APIs or MCP-based tools.
+The Weather MCP Server currently reuses the existing weather service and local weather data.
+
+These local data sources can later be replaced with real-time external APIs or additional MCP-based tools.
 
 ## Current Implementation
 
@@ -285,14 +389,19 @@ The current version includes:
 - Pydantic-based response validation
 - Remote Weather Agent
 - A2A-based communication with the Weather Agent
+- Local Weather MCP Server
+- Weather functionality exposed as an MCP tool
+- MCP tool integration using `McpToolset`
+- stdio-based MCP communication
 - Complete travel itinerary generation
 - A2A communication testing using `test_a2a.py`
+- MCP testing using `test_weather_mcp.py`
 
 ## Future Enhancements
 
 Planned improvements include:
 
-- Integrate MCP servers for external travel tools
+- Add more MCP servers for external travel tools
 - Add real-time flight APIs
 - Add real-time hotel availability APIs
 - Add live weather APIs
@@ -324,4 +433,4 @@ git push
 
 ## License
 
-This project is intended for learning, experimentation, and demonstration of agentic AI concepts using Google ADK and the A2A protocol.
+This project is intended for learning, experimentation, and demonstration of agentic AI concepts using Google ADK, the A2A protocol, and MCP.
