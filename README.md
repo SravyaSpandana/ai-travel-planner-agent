@@ -97,6 +97,11 @@ The MCP server is launched as a Python module:
 ```bash
 python -m mcp_servers.weather_mcp_server
 ```
+## Architecture Diagram
+
+The following diagram illustrates the overall architecture of the AI Travel Planner Agent, including the Travel Planner Agent, specialized agents, A2A communication, and MCP-based weather integration.
+
+![AI Travel Planner Agent Architecture](docs/images/architecture_diagram.png)
 
 The ADK application starts and communicates with the MCP server when the weather tool is required.
 
